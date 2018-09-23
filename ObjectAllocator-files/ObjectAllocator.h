@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include <string>
-#include <iostream>
+// #include <iostream>
 
 // If the client doesn't specify these:
 static const int DEFAULT_OBJECTS_PER_PAGE = 4;
