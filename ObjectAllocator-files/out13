@@ -1,0 +1,3 @@
+Object size = 24, Page size = 29008, Pad bytes = 0, ObjectsPerPage = 1000, MaxPages = 10, MaxObjects = 10000
+Alignment = 0, LeftAlign = 0, InterAlign = 0, HeaderBlocks = Basic, Header size = 5
+Pages in use: 10, Objects in use: 10000, Available objects: 0, Allocs: 10000, Frees: 0

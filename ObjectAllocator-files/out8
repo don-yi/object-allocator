@@ -1,0 +1,107 @@
+Object size = 24, Page size = 152, Pad bytes = 2, ObjectsPerPage = 4, MaxPages = 1, MaxObjects = 4
+Alignment = 0, LeftAlign = 0, InterAlign = 0, HeaderBlocks = External, Header size = 8
+Pages in use: 1, Objects in use: 0, Available objects: 4, Allocs: 0, Frees: 0
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA
+ AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA
+ AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX
+ XX XX AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX
+ XX XX XX XX XX XX AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+
+Pages in use: 1, Objects in use: 1, Available objects: 3, Allocs: 1, Frees: 0
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA
+ AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA
+ AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX
+ XX XX AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX
+ XX XX XX XX XX XX BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB DD DD
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: First student
+ In use: 1
+Alloc #: 1
+
+Pages in use: 1, Objects in use: 2, Available objects: 2, Allocs: 2, Frees: 0
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA
+ AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA
+ AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX
+ XX XX BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB DD DD XX XX XX XX XX XX XX XX DD DD XX XX
+ XX XX XX XX XX XX BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB DD DD
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: Second student
+ In use: 1
+Alloc #: 2
+  Label: First student
+ In use: 1
+Alloc #: 1
+
+Pages in use: 1, Objects in use: 1, Available objects: 3, Allocs: 2, Frees: 1
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA
+ AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA
+ AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX
+ XX XX BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB BB DD DD XX XX XX XX XX XX XX XX DD DD XX XX
+ XX XX XX XX XX XX CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC DD DD
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: Second student
+ In use: 1
+Alloc #: 2
+  Label: 
+ In use: 0
+Alloc #: 0
+
+Pages in use: 1, Objects in use: 0, Available objects: 4, Allocs: 2, Frees: 2
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA
+ AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX XX XX AA AA
+ AA AA AA AA AA AA AA AA AA AA AA AA AA AA DD DD XX XX XX XX XX XX XX XX DD DD XX XX XX XX XX XX
+ XX XX CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC DD DD XX XX XX XX XX XX XX XX DD DD XX XX
+ XX XX XX XX XX XX CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC DD DD
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+  Label: 
+ In use: 0
+Alloc #: 0
+
