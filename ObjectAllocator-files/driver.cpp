@@ -1,3 +1,7 @@
+#define CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
+
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -1697,7 +1701,7 @@ void ExecuteTest( TestFn fn, int maxwait = 1000, int safewait = 1000 )
 //****************************************************************************************************
 int main( int argc, char **argv )
 {
-    int test_num = 0;
+    int test_num = 1;
     if( argc > 1 )
         test_num = std::atoi( argv[1] );
     struct TimedTest {
@@ -1743,6 +1747,13 @@ int main( int argc, char **argv )
     } else if( test_num > 0 && test_num <= num ) {
         ExecuteTest( Tests[test_num - 1].test, Tests[test_num - 1].maxwait, Tests[test_num - 1].safewait );
     }
+
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+  _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+  _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
+
+  _CrtSetBreakAlloc(-1);
+
     return 0;
 }
 

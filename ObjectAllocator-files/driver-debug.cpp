@@ -1,3 +1,7 @@
+#define CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
+
 #include <iostream> 
 #include <cstdio>
 #include <cstring>
@@ -1008,7 +1012,7 @@ void TestExternalHeaderBlocks()
 
 //****************************************************************************************************
 //****************************************************************************************************
-void DoStudents(unsigned padding, bool printall)
+void DoStudents(unsigned padding, bool printall) // 0, false
 {
   try 
   {
@@ -2166,7 +2170,7 @@ int main(int argc, char **argv)
     _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
 #endif
 
-  int test = 0;
+  int test = 1;
 
   if (argc > 1)
     test = std::atoi(argv[1]);
@@ -2365,6 +2369,11 @@ int main(int argc, char **argv)
   //ObjectAllocator c(a);
   //a = b;
   
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+  _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+  _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
+
+  _CrtSetBreakAlloc(-1);
 
   return 0;
 }

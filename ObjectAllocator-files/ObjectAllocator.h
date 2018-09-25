@@ -63,6 +63,7 @@ struct OAConfig
     };
   };
 
+  // OAConfig config(newdel, 4, 2, debug, padbytes, header, alignment);
   OAConfig(bool UseCPPMemManager = false,
     unsigned ObjectsPerPage = DEFAULT_OBJECTS_PER_PAGE,
     unsigned MaxPages = DEFAULT_MAX_PAGES,
@@ -179,6 +180,17 @@ private:
   void allocate_new_page(void);       // allocates another page of objects
   void put_on_freelist(void *Object); // puts Object onto the free list
 
+  size_t ObjectSize_;
+  size_t PageSize_;
+  unsigned PadBytes_;
+  unsigned ObjectsPerPage_;
+  unsigned MaxPages_;
+  unsigned Alignment_;
+  unsigned LeftAlignSize_;  // number of alignment bytes required to align first block
+  unsigned InterAlignSize_; // number of alignment bytes required between remaining blocks
+  OAConfig::HeaderBlockInfo HBlockInfo_; // size of the header for each block (0=no headers)
+
+  
     // Make private to prevent copy construction and assignment
   ObjectAllocator(const ObjectAllocator &oa);
   ObjectAllocator &operator=(const ObjectAllocator &oa);
