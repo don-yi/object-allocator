@@ -191,6 +191,10 @@ private:
   OAConfig::HeaderBlockInfo HBlockInfo_; // size of the header for each block (0=no headers)
   unsigned PagesInUse_{};    // number of pages allocated
   unsigned ObjectsInUse_{};  // number of objects in use by client
+  unsigned FreeObjects_{};   // number of objects on the free list
+  unsigned Allocations_{};   // total requests to allocate memory
+  unsigned Deallocations_{}; // total requests to free memory
+  unsigned MostObjects_{};   // most objects in use by client at one time
   
     // Make private to prevent copy construction and assignment
   ObjectAllocator(const ObjectAllocator &oa);

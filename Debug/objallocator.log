@@ -1,2 +1,6 @@
 ﻿  ObjectAllocator.cpp
+c:\users\dennislee\source\repos\objallocator\objectallocator-files\objectallocator.cpp(198): warning C4101: 'castedcontent': unreferenced local variable
+c:\users\dennislee\source\repos\objallocator\objectallocator-files\objectallocator.cpp(197): warning C4101: 'content': unreferenced local variable
+  driver-debug.cpp
+  Generating Code...
   objallocator.vcxproj -> C:\Users\DennisLee\source\repos\objallocator\Debug\objallocator.exe

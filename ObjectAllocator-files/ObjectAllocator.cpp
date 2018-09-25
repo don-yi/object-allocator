@@ -58,13 +58,28 @@ void* ObjectAllocator::Allocate(const char* label)
 
   FreeList_ = nextfreelist;
 
+  // Handle private stats
   ++ObjectsInUse_;
+  --FreeObjects_;
+  ++Allocations_;
+
+  if (MostObjects_ < ObjectsInUse_)
+  {
+    MostObjects_ = ObjectsInUse_;
+  }
 
   return object;
 }
 
 void ObjectAllocator::Free(void* Object)
 {
+  // Mark the freeing object
+  // *obj = 0xCCCC;
+
+  // Handle private stats
+  --ObjectsInUse_;
+  ++FreeObjects_;
+  ++Deallocations_;
 }
 
 unsigned ObjectAllocator::DumpMemoryInUse(DUMPCALLBACK fn) const
@@ -126,6 +141,10 @@ OAStats ObjectAllocator::GetStats() const
   stats.PageSize_ = PageSize_;
   stats.PagesInUse_ = PagesInUse_;
   stats.ObjectsInUse_ = ObjectsInUse_;
+  stats.FreeObjects_ = FreeObjects_;
+  stats.Allocations_ = Allocations_;
+  stats.Deallocations_ = Deallocations_;
+  stats.MostObjects_ = MostObjects_;
 
   return stats;
 }
@@ -139,6 +158,11 @@ void ObjectAllocator::allocate_new_page()
     GenericObject* castedpage;
 
     newpage = new char[PageSize_];
+    // Fill in unallocated memory signature
+    for (auto i = 0; i < PageSize_; ++i)
+    {
+      newpage[i] = UNALLOCATED_PATTERN;
+    }
     castedpage = reinterpret_cast<GenericObject*>(newpage);
     castedpage->Next = nullptr;
 
@@ -163,26 +187,32 @@ void ObjectAllocator::allocate_new_page()
     throw OAException(OAException::E_NO_MEMORY, "allocate_new_page: No system memory available.");
   }
 
-  // Devide the page into objects and link free list
+  // Link free list
   GenericObject* freelistwalker;
 
-  // fix when allignments and pads!@#!@#!#
+  // TODO: handle allignments and pads
   freelistwalker = PageList_ + 1;
   freelistwalker->Next = nullptr;
 
   for (unsigned i = 0; i < ObjectsPerPage_ - 1; ++i)
   {
-    GenericObject* prevfreelist;
+    GenericObject* nextfreespace;
     char* placeholder;
 
-    prevfreelist = freelistwalker;
+    nextfreespace = freelistwalker;
     placeholder = reinterpret_cast<char*>(freelistwalker) + ObjectSize_;
+
     freelistwalker = reinterpret_cast<GenericObject*>(placeholder);
-    freelistwalker->Next = prevfreelist;
+    freelistwalker->Next = nextfreespace;
     FreeList_ = freelistwalker;
   }
 
+  // Handle private stats
   ++PagesInUse_;
+  for (unsigned i = 0; i < ObjectsPerPage_; ++i)
+  {
+    ++FreeObjects_;
+  }
 
   //if ( /* Object is on a valid page boundary */)
   //  // put it on the free list
@@ -202,3 +232,14 @@ ObjectAllocator& ObjectAllocator::operator=(const ObjectAllocator& oa)
 {
   return *this;
 }
+
+    //GenericObject* content;
+    //char* castedcontent;
+
+    //content = freelistwalker + 1;
+    //castedcontent = reinterpret_cast<char*>(content);
+    //auto contentsize = ObjectSize_ - sizeof(GenericObject*);
+    //for (auto i = 0; i < contentsize; ++i)
+    //{
+    //  castedcontent[i] = UNALLOCATED_PATTERN;
+    //}
