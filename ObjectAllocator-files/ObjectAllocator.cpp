@@ -3,6 +3,7 @@
 ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
   : PageList_(nullptr), FreeList_(nullptr), 
   ObjectSize_(ObjectSize),
+  PageSize_(config.ObjectsPerPage_ * ObjectSize + sizeof(void*)),
   PadBytes_(config.PadBytes_),
   ObjectsPerPage_(config.ObjectsPerPage_),
   MaxPages_(config.MaxPages_),
@@ -11,32 +12,50 @@ ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
   InterAlignSize_(config.InterAlignSize_),
   HBlockInfo_(config.HBlockInfo_)
 {
-    PageSize_ = config.ObjectsPerPage_ * ObjectSize + sizeof(void*);
+    allocate_new_page();
 }
 
 ObjectAllocator::~ObjectAllocator()
 {
-  delete[] PageList_;
+  // Walk to and delete from the last page to first in the list
+  while (PageList_)
+  {
+    GenericObject* pagelistwalker;
+    //char* newpage;
+    //GenericObject* castedpage;
+
+    pagelistwalker = PageList_;
+    //newpage = new char[PageSize_];
+    //castedpage = reinterpret_cast<GenericObject*>(newpage);
+    while (pagelistwalker->Next)
+    {
+      pagelistwalker = pagelistwalker->Next;
+    }
+    delete [] pagelistwalker;
+    pagelistwalker = nullptr;
+  }
 }
 
 void* ObjectAllocator::Allocate(const char* label)
 {
-  //GenericObject* object;
-
-  // If no free space, make new page
+  // If no free space, allocate a new page
   if (!FreeList_)
   {
     allocate_new_page();
   }
-  else
-  {
-    GenericObject* nextfreelist = FreeList_->Next;
 
+  // Take the object to the first space in the list
+  void* object;
+  GenericObject* nextfreelist;
 
-    FreeList_ = nextfreelist;
-  }
+  object = reinterpret_cast<void*>(FreeList_);
+  nextfreelist = FreeList_->Next;
 
-  return nullptr;
+  FreeList_ = nextfreelist;
+
+  ++ObjectsInUse_;
+
+  return object;
 }
 
 void ObjectAllocator::Free(void* Object)
@@ -100,6 +119,8 @@ OAStats ObjectAllocator::GetStats() const
 
   stats.ObjectSize_ = ObjectSize_;
   stats.PageSize_ = PageSize_;
+  stats.PagesInUse_ = PagesInUse_;
+  stats.ObjectsInUse_ = ObjectsInUse_;
 
   return stats;
 }
@@ -161,6 +182,8 @@ void ObjectAllocator::allocate_new_page()
     FreeList_ = freelistwalker;
   }
 
+  ++PagesInUse_;
+
   //if ( /* Object is on a valid page boundary */)
   //  // put it on the free list
   //else
@@ -172,7 +195,6 @@ void ObjectAllocator::put_on_freelist(void* Object)
 }
 
 ObjectAllocator::ObjectAllocator(const ObjectAllocator& oa)
-  //: PageList_(nullptr), FreeList_(nullptr)
 {
 }
 

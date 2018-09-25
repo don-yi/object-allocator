@@ -189,7 +189,8 @@ private:
   unsigned LeftAlignSize_;  // number of alignment bytes required to align first block
   unsigned InterAlignSize_; // number of alignment bytes required between remaining blocks
   OAConfig::HeaderBlockInfo HBlockInfo_; // size of the header for each block (0=no headers)
-
+  unsigned PagesInUse_{};    // number of pages allocated
+  unsigned ObjectsInUse_{};  // number of objects in use by client
   
     // Make private to prevent copy construction and assignment
   ObjectAllocator(const ObjectAllocator &oa);

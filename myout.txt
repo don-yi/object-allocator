@@ -1,11 +1,18 @@
-Object size = 16, Page size = 72, Pad bytes = 0, ObjectsPerPage = 4, MaxPages = 2, MaxObjects = 8
+Object size = 24, Page size = 104, Pad bytes = 0, ObjectsPerPage = 4, MaxPages = 2, MaxObjects = 8
 Alignment = 0, LeftAlign = 0, InterAlign = 0, HeaderBlocks = None, Header size = 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 0, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 1, Objects in use: 0, Available objects: 0, Allocs: 0, Frees: 0
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD
+ XX XX XX XX XX XX XX XX CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD XX XX XX XX XX XX XX XX
+ CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD XX XX XX XX XX XX XX XX CD CD CD CD CD CD CD CD
+ CD CD CD CD CD CD CD CD
+
+Pages in use: 1, Objects in use: 1, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 1, Objects in use: 2, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 1, Objects in use: 3, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
 Most students in use: 0
