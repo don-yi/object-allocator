@@ -11,8 +11,9 @@ XXXXXXXX
 Pages in use: 1, Objects in use: 1, Available objects: 0, Allocs: 0, Frees: 0
 Pages in use: 1, Objects in use: 2, Available objects: 0, Allocs: 0, Frees: 0
 Pages in use: 1, Objects in use: 3, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
-Pages in use: 3, Objects in use: 9, Available objects: 0, Allocs: 0, Frees: 0
+Exception thrown from Allocate (2) in DoStudents.
+Pages in use: 2, Objects in use: 8, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 2, Objects in use: 8, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 2, Objects in use: 8, Available objects: 0, Allocs: 0, Frees: 0
+Pages in use: 2, Objects in use: 8, Available objects: 0, Allocs: 0, Frees: 0
 Most students in use: 0

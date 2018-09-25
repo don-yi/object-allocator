@@ -17,22 +17,20 @@ ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
 
 ObjectAllocator::~ObjectAllocator()
 {
-  // Walk to and delete from the last page to first in the list
-  while (PageList_)
-  {
-    GenericObject* pagelistwalker;
-    //char* newpage;
-    //GenericObject* castedpage;
+  GenericObject* pagetodelete;
+  GenericObject* nextpage;
 
-    pagelistwalker = PageList_;
-    //newpage = new char[PageSize_];
-    //castedpage = reinterpret_cast<GenericObject*>(newpage);
-    while (pagelistwalker->Next)
-    {
-      pagelistwalker = pagelistwalker->Next;
-    }
-    delete [] pagelistwalker;
-    pagelistwalker = nullptr;
+  pagetodelete = PageList_;
+  nextpage = nullptr;
+
+  // While a page left to delete, delete the page and walk to next page
+  while (pagetodelete)
+  {
+    nextpage = pagetodelete->Next;
+
+    delete[] pagetodelete;
+
+    pagetodelete = nextpage;
   }
 }
 
@@ -41,6 +39,13 @@ void* ObjectAllocator::Allocate(const char* label)
   // If no free space, allocate a new page
   if (!FreeList_)
   {
+    // If max page, throw exception
+    if (PagesInUse_ >= MaxPages_)
+    {
+      throw OAException(OAException::E_NO_PAGES,
+        "out of logical memory (max pages has been reached)"
+      );
+    }
     allocate_new_page();
   }
 
@@ -127,11 +132,6 @@ OAStats ObjectAllocator::GetStats() const
 
 void ObjectAllocator::allocate_new_page()
 {
-  //if (FreeList_)
-  //{
-  //  return;
-  //}
-
   try
   {
     // If new throws an exception, catch it, and throw our own type of exception
