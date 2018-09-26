@@ -34,6 +34,7 @@ ObjectAllocator::~ObjectAllocator()
   }
 }
 
+// todo: adjust free list and mark allocated signature
 void* ObjectAllocator::Allocate(const char* label)
 {
   // If no free space, allocate a new page
@@ -49,14 +50,16 @@ void* ObjectAllocator::Allocate(const char* label)
     allocate_new_page();
   }
 
-  // Take the object to the first space in the list
-  void* object;
-  GenericObject* nextfreelist;
+  // Fill in the allocated signature to the object and move the free list
+  char* object;
 
-  object = reinterpret_cast<void*>(FreeList_);
-  nextfreelist = FreeList_->Next;
+  object = reinterpret_cast<char*>(FreeList_);
+  FreeList_ = FreeList_->Next;
 
-  FreeList_ = nextfreelist;
+  for (auto i = 0; i < ObjectSize_; ++i)
+  {
+    object[i] = ALLOCATED_PATTERN;
+  }
 
   // Handle private stats
   ++ObjectsInUse_;
@@ -68,13 +71,26 @@ void* ObjectAllocator::Allocate(const char* label)
     MostObjects_ = ObjectsInUse_;
   }
 
-  return object;
+  return reinterpret_cast<void*>(object);
 }
 
 void ObjectAllocator::Free(void* Object)
 {
-  // Mark the freeing object
-  // *obj = 0xCCCC;
+  // Fill in freed memory signature
+  GenericObject* castedobject;
+  GenericObject* nextfreespace;
+  char* objectfiller;
+
+  castedobject = reinterpret_cast<GenericObject*>(Object);
+  nextfreespace = castedobject->Next;
+  objectfiller = reinterpret_cast<char*>(Object);
+
+  for (auto i = 0; i < ObjectSize_; ++i)
+  {
+    objectfiller[i] = FREED_PATTERN;
+  }
+
+  FreeList_ = nextfreespace;
 
   // Handle private stats
   --ObjectsInUse_;
@@ -113,7 +129,7 @@ const void* ObjectAllocator::GetFreeList() const
 
 const void* ObjectAllocator::GetPageList() const
 {
-  return PageList_;
+  return reinterpret_cast<const void*>(PageList_);
 }
 
 OAConfig ObjectAllocator::GetConfig() const
@@ -149,14 +165,15 @@ OAStats ObjectAllocator::GetStats() const
   return stats;
 }
 
+// todo: link new pg to the head not the tail
 void ObjectAllocator::allocate_new_page()
 {
+  char* newpage;
+  GenericObject* castedpage;
+
   try
   {
     // If new throws an exception, catch it, and throw our own type of exception
-    char* newpage;
-    GenericObject* castedpage;
-
     newpage = new char[PageSize_];
     // Fill in unallocated memory signature
     for (auto i = 0; i < PageSize_; ++i)
@@ -191,7 +208,7 @@ void ObjectAllocator::allocate_new_page()
   GenericObject* freelistwalker;
 
   // TODO: handle allignments and pads
-  freelistwalker = PageList_ + 1;
+  freelistwalker = castedpage + 1;
   freelistwalker->Next = nullptr;
 
   for (unsigned i = 0; i < ObjectsPerPage_ - 1; ++i)
@@ -232,7 +249,6 @@ ObjectAllocator& ObjectAllocator::operator=(const ObjectAllocator& oa)
 {
   return *this;
 }
-
     //GenericObject* content;
     //char* castedcontent;
 
@@ -243,3 +259,4 @@ ObjectAllocator& ObjectAllocator::operator=(const ObjectAllocator& oa)
     //{
     //  castedcontent[i] = UNALLOCATED_PATTERN;
     //}
+
