@@ -1701,7 +1701,7 @@ void ExecuteTest( TestFn fn, int maxwait = 1000, int safewait = 1000 )
 //****************************************************************************************************
 int main( int argc, char **argv )
 {
-    int test_num = 1;
+    int test_num = 3;
     if( argc > 1 )
         test_num = std::atoi( argv[1] );
     struct TimedTest {

@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ObjectAllocator-files\driver-debug.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ObjectAllocator-files\PRNG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

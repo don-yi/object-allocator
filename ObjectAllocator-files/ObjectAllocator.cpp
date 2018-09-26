@@ -95,6 +95,14 @@ void ObjectAllocator::Free(void* Object)
     );
   }
 
+  // Make sure this object is not on bad boundary
+  if (IsOnBadBoundary(castedobject))
+  {
+    throw OAException(OAException::E_BAD_BOUNDARY,
+      "block address is on a page, but not on any block-boundary"
+    );
+  }
+
   // Fill in freed memory signature
   char* objectfiller;
 
@@ -275,6 +283,47 @@ bool ObjectAllocator::IsOnFreeList(GenericObject * object) const
   }
 
   return false;
+}
+
+// Make sure this object is not on bad boundary
+bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
+{
+  GenericObject* pagewalker;
+  char* pageend;
+  GenericObject* castedpageend;
+  char* lastobjpos;
+
+  pagewalker = PageList_;
+  pageend = reinterpret_cast<char*>(pagewalker) + PageSize_;
+  castedpageend = reinterpret_cast<GenericObject*>(pageend);
+
+  // Check the page which the object is on
+  while (object < pagewalker + 1 || castedpageend < object)
+  {
+    pagewalker = pagewalker->Next;
+
+    // Bad boundary: The object not on any page
+    if (!pagewalker)
+    {
+      return true;
+    }
+  }
+
+
+  // Good boundary: The object at first or last position in a page
+  lastobjpos = pageend - ObjectSize_;
+  // todo: consider paddings and allignments
+  if (object == pagewalker + 1 ||
+    object == reinterpret_cast<GenericObject*>(lastobjpos)
+    )
+  {
+    return false;
+  }
+
+  // The object in between
+  size_t starttoobj;
+  starttoobj = pagewalker + 1 - object;
+  return (starttoobj % ObjectSize_) != 0;
 }
 
   //GenericObject* content;

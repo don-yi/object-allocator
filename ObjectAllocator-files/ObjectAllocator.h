@@ -202,6 +202,8 @@ private:
 
   // Make sure this object hasn't been freed yet
   bool IsOnFreeList(GenericObject* object) const;
+  // Make sure this object is not on bad boundary
+  bool IsOnBadBoundary(GenericObject* object) const;
 };
 
 #endif
