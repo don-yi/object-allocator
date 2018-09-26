@@ -199,6 +199,9 @@ private:
     // Make private to prevent copy construction and assignment
   ObjectAllocator(const ObjectAllocator &oa);
   ObjectAllocator &operator=(const ObjectAllocator &oa);
+
+  // Make sure this object hasn't been freed yet
+  bool IsOnFreeList(GenericObject* object) const;
 };
 
 #endif

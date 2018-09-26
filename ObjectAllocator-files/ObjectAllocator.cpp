@@ -12,7 +12,15 @@ ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
   InterAlignSize_(config.InterAlignSize_),
   HBlockInfo_(config.HBlockInfo_)
 {
-    allocate_new_page();
+  allocate_new_page();
+
+  // Handle exception
+  if (!PageList_)
+  {
+      throw OAException(OAException::E_NO_MEMORY,
+        "out of physical memory (operator new fails)"
+      );
+  }
 }
 
 ObjectAllocator::~ObjectAllocator()
@@ -76,13 +84,20 @@ void* ObjectAllocator::Allocate(const char* label)
 
 void ObjectAllocator::Free(void* Object)
 {
-  // Fill in freed memory signature
   GenericObject* castedobject;
-  GenericObject* nextfreespace;
+  castedobject = reinterpret_cast<GenericObject*>(Object);
+
+  // Make sure this object hasn't been freed yet
+  if (IsOnFreeList(castedobject))
+  {
+    throw OAException(OAException::E_MULTIPLE_FREE,
+      "FreeObject: Object has already been freed."
+    );
+  }
+
+  // Fill in freed memory signature
   char* objectfiller;
 
-  castedobject = reinterpret_cast<GenericObject*>(Object);
-  nextfreespace = castedobject->Next;
   objectfiller = reinterpret_cast<char*>(Object);
 
   for (auto i = 0; i < ObjectSize_; ++i)
@@ -90,7 +105,9 @@ void ObjectAllocator::Free(void* Object)
     objectfiller[i] = FREED_PATTERN;
   }
 
-  FreeList_ = nextfreespace;
+  // Link the free list
+  castedobject->Next = FreeList_;
+  FreeList_ = castedobject;
 
   // Handle private stats
   --ObjectsInUse_;
@@ -165,7 +182,6 @@ OAStats ObjectAllocator::GetStats() const
   return stats;
 }
 
-// todo: link new pg to the head not the tail
 void ObjectAllocator::allocate_new_page()
 {
   char* newpage;
@@ -181,23 +197,11 @@ void ObjectAllocator::allocate_new_page()
       newpage[i] = UNALLOCATED_PATTERN;
     }
     castedpage = reinterpret_cast<GenericObject*>(newpage);
-    castedpage->Next = nullptr;
 
-    // If first page, set page list
-    if (!PageList_)
-    {
-      PageList_ = castedpage;
-    }
-    // If not first page, Walk to last page and set the new page in the next
-    else
-    {
-      GenericObject* pagewalker = PageList_;
-      while (pagewalker->Next)
-      {
-        pagewalker = pagewalker->Next;
-      }
-      pagewalker->Next = castedpage;
-    }
+    // Link the page list
+    GenericObject* nextpage = PageList_;
+    PageList_ = castedpage;
+    PageList_->Next = nextpage;
   }
   catch (std::bad_alloc &)
   {
@@ -249,14 +253,37 @@ ObjectAllocator& ObjectAllocator::operator=(const ObjectAllocator& oa)
 {
   return *this;
 }
-    //GenericObject* content;
-    //char* castedcontent;
 
-    //content = freelistwalker + 1;
-    //castedcontent = reinterpret_cast<char*>(content);
-    //auto contentsize = ObjectSize_ - sizeof(GenericObject*);
-    //for (auto i = 0; i < contentsize; ++i)
-    //{
-    //  castedcontent[i] = UNALLOCATED_PATTERN;
-    //}
+  // Make sure this object hasn't been freed yet
+bool ObjectAllocator::IsOnFreeList(GenericObject * object) const
+{
+  if (!FreeList_)
+  {
+    return false;
+  }
 
+  GenericObject* freelistwalker;
+  freelistwalker = FreeList_;
+    
+  while (freelistwalker)
+  {
+    if (freelistwalker == object)
+    {
+      return true;
+    }
+    freelistwalker = freelistwalker->Next;
+  }
+
+  return false;
+}
+
+  //GenericObject* content;
+  //char* castedcontent;
+
+  //content = freelistwalker + 1;
+  //castedcontent = reinterpret_cast<char*>(content);
+  //auto contentsize = ObjectSize_ - sizeof(GenericObject*);
+  //for (auto i = 0; i < contentsize; ++i)
+  //{
+  //  castedcontent[i] = UNALLOCATED_PATTERN;
+  //}
