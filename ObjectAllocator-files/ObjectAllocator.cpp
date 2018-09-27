@@ -292,17 +292,26 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
   char* pageend;
   GenericObject* castedpageend;
   char* lastobjpos;
+  GenericObject* firstobjpos;
 
   pagewalker = PageList_;
-  pageend = reinterpret_cast<char*>(pagewalker) + PageSize_;
-  castedpageend = reinterpret_cast<GenericObject*>(pageend);
 
   // Check the page which the object is on
-  while (object < pagewalker + 1 || castedpageend < object)
+  while (true)
   {
-    pagewalker = pagewalker->Next;
+    pageend = reinterpret_cast<char*>(pagewalker) + PageSize_;
+    castedpageend = reinterpret_cast<GenericObject*>(pageend);
 
-    // Bad boundary: The object not on any page
+    firstobjpos = pagewalker + 1;
+
+    // If the object is in a page
+    if (firstobjpos <= object && object < castedpageend)
+    {
+      break;
+    }
+
+    // If the object is not in a page
+    pagewalker = pagewalker->Next;
     if (!pagewalker)
     {
       return true;
@@ -313,7 +322,7 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
   // Good boundary: The object at first or last position in a page
   lastobjpos = pageend - ObjectSize_;
   // todo: consider paddings and allignments
-  if (object == pagewalker + 1 ||
+  if (object == firstobjpos  ||
     object == reinterpret_cast<GenericObject*>(lastobjpos)
     )
   {
@@ -321,9 +330,11 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
   }
 
   // The object in between
-  size_t starttoobj;
-  starttoobj = pagewalker + 1 - object;
-  return (starttoobj % ObjectSize_) != 0;
+  size_t disttoobj;
+
+  disttoobj = object - firstobjpos;
+  disttoobj *= sizeof(GenericObject*);
+  return (disttoobj % ObjectSize_) != 0;
 }
 
   //GenericObject* content;

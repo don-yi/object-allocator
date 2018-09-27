@@ -910,6 +910,7 @@ void DoEmployees( void )
     }
     // Free an invalid pointer (bad boundary condition)
     try {
+      //cout << pEmployee4[0] << endl;
         employeeObjectMgr->Free( reinterpret_cast<char *>( pEmployee4[0] + 4 ) );
     } catch( const OAException& e ) {
         if( SHOW_EXCEPTIONS )
@@ -1701,7 +1702,7 @@ void ExecuteTest( TestFn fn, int maxwait = 1000, int safewait = 1000 )
 //****************************************************************************************************
 int main( int argc, char **argv )
 {
-    int test_num = 3;
+    int test_num = 4;
     if( argc > 1 )
         test_num = std::atoi( argv[1] );
     struct TimedTest {
