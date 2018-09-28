@@ -45,7 +45,6 @@ ObjectAllocator::~ObjectAllocator()
   }
 }
 
-// todo: adjust free list and mark allocated signature
 void* ObjectAllocator::Allocate(const char* label)
 {
   // If no free space, allocate a new page
@@ -61,20 +60,6 @@ void* ObjectAllocator::Allocate(const char* label)
     allocate_new_page();
   }
 
-  // Fill in the allocated signature to the object and link the free list
-  GenericObject* nextfree;
-  char* object;
-
-  nextfree = FreeList_->Next;
-  object = reinterpret_cast<char*>(FreeList_);
-
-  for (auto i = 0; i < ObjectSize_; ++i)
-  {
-    object[i] = ALLOCATED_PATTERN;
-  }
-
-  FreeList_ = nextfree;
-
   // Handle private stats
   ++ObjectsInUse_;
   --FreeObjects_;
@@ -84,6 +69,30 @@ void* ObjectAllocator::Allocate(const char* label)
   {
     MostObjects_ = ObjectsInUse_;
   }
+
+  // Fill in the allocated signature to the object and link the free list
+  GenericObject* nextfree;
+  char* object;
+
+  nextfree = FreeList_->Next;
+  object = reinterpret_cast<char*>(FreeList_);
+
+  // Fill in the header info
+  if (HBlockInfo_.size_)
+  {
+    char* headerwalker;
+    headerwalker = object - PadBytes_ - HBlockInfo_.size_;
+
+    headerwalker[0] = Allocations_;
+    headerwalker[HBlockInfo_.size_ - 1] = 0x01;
+  }
+
+  for (auto i = 0; i < ObjectSize_; ++i)
+  {
+    object[i] = ALLOCATED_PATTERN;
+  }
+
+  FreeList_ = nextfree;
 
   return reinterpret_cast<void*>(object);
 }
@@ -113,6 +122,24 @@ void ObjectAllocator::Free(void* Object)
   char* objectfiller;
 
   objectfiller = reinterpret_cast<char*>(Object);
+
+  //if (HBlockInfo_.size_)
+  //{
+  //  char* headerwalker;
+  //  headerwalker = object - PadBytes_ - HBlockInfo_.size_;
+
+  //  headerwalker[0] = MostObjects_;
+  //  headerwalker[HBlockInfo_.size_ - 1] = 0x01;
+  //}
+
+  if (HBlockInfo_.size_)
+  {
+    char* headerwalker;
+    headerwalker = objectfiller - PadBytes_ - HBlockInfo_.size_;
+
+    headerwalker[0] = 0;
+    headerwalker[HBlockInfo_.size_ - 1] = 0;
+  }
 
   for (auto i = 0; i < ObjectSize_; ++i)
   {
@@ -199,70 +226,106 @@ OAStats ObjectAllocator::GetStats() const
 void ObjectAllocator::allocate_new_page()
 {
   char* newpage;
-  GenericObject* castedpage;
 
   try
   {
     // If new throws an exception, catch it, and throw our own type of exception
     newpage = new char[PageSize_];
-    // Fill in unallocated memory signature
-    for (auto i = 0; i < PageSize_; ++i)
-    {
-      newpage[i] = UNALLOCATED_PATTERN;
-    }
-
-    // Fill in padding memory signature
-    if (PadBytes_)
-    {
-      char* padwalker;
-      char* pageend;
-
-      padwalker = newpage + sizeof(GenericObject*);
-      pageend = newpage + PageSize_;
-
-      while (padwalker < pageend)
-      {
-        for (unsigned i = 0; i < PadBytes_; ++i)
-        {
-          padwalker[i] = PAD_PATTERN;
-        }
-
-        padwalker += ObjectSize_ + PadBytes_;
-
-        for (unsigned i = 0; i < PadBytes_; ++i)
-        {
-          padwalker[i] = PAD_PATTERN;
-        }
-
-        padwalker += PadBytes_;
-      }
-    }
-
-    castedpage = reinterpret_cast<GenericObject*>(newpage);
-
-    // Link the page list
-    GenericObject* nextpage = PageList_;
-    PageList_ = castedpage;
-    PageList_->Next = nextpage;
   }
   catch (std::bad_alloc &)
   {
     throw OAException(OAException::E_NO_MEMORY, "allocate_new_page: No system memory available.");
   }
 
+  // Fill in unallocated memory signature
+  for (auto i = 0; i < PageSize_; ++i)
+  {
+    newpage[i] = UNALLOCATED_PATTERN;
+  }
+
+  // Fill in padding memory signature
+  if (PadBytes_)
+  {
+    char* padwalker;
+    char* pageend;
+
+    padwalker = newpage + sizeof(GenericObject*) + HBlockInfo_.size_;
+    pageend = newpage + PageSize_;
+
+    while (true)
+    {
+      for (unsigned i = 0; i < PadBytes_; ++i)
+      {
+        padwalker[i] = PAD_PATTERN;
+      }
+
+      padwalker += PadBytes_ + ObjectSize_;
+
+      if (padwalker >= pageend)
+      {
+        break;
+      }
+
+      for (unsigned i = 0; i < PadBytes_; ++i)
+      {
+        padwalker[i] = PAD_PATTERN;
+      }
+
+      padwalker += PadBytes_ + HBlockInfo_.size_;
+
+      if (padwalker >= pageend)
+      {
+        break;
+      }
+    }
+  }
+
+  // Fill in header memory signature
+  if (HBlockInfo_.size_)
+  {
+    char* headerwalker;
+    char* pageend;
+
+    headerwalker = newpage + sizeof(GenericObject*);
+    pageend = newpage + PageSize_;
+
+    while (headerwalker < pageend)
+    {
+      #define HEADER_PATTERN 0x00
+
+      for (unsigned i = 0; i < HBlockInfo_.size_; ++i)
+      {
+        headerwalker[i] = HEADER_PATTERN;
+      }
+
+      headerwalker += HBlockInfo_.size_ + 2 * PadBytes_ + ObjectSize_;
+    }
+  }
+
+  GenericObject* castedpage;
+
+  castedpage = reinterpret_cast<GenericObject*>(newpage);
+
+  // Link the page list
+  GenericObject* nextpage = PageList_;
+  PageList_ = castedpage;
+  PageList_->Next = nextpage;
+
   // Link free list
-  // TODO: handle allignments
+  // todo: handle allignments
   char* placeholder;
   GenericObject* freelistwalker;
 
-  placeholder = newpage + sizeof(GenericObject*) + PadBytes_;
+  placeholder = newpage + sizeof(GenericObject*) + HBlockInfo_.size_
+  + PadBytes_
+  ;
   freelistwalker = reinterpret_cast<GenericObject*>(placeholder);
   FreeList_ = freelistwalker;
   FreeList_->Next = nullptr;
 
   for (unsigned i = 0; i < ObjectsPerPage_ - 1; ++i)
   {
-    placeholder = placeholder + ObjectSize_ + (2 * PadBytes_);
+    placeholder += ObjectSize_ + (2 * PadBytes_) + HBlockInfo_.size_;
     freelistwalker = reinterpret_cast<GenericObject*>(placeholder);
     freelistwalker->Next = FreeList_;
     FreeList_ = freelistwalker;
@@ -325,8 +388,9 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
     pageend = reinterpret_cast<char*>(pagewalker) + PageSize_;
     castedpageend = reinterpret_cast<GenericObject*>(pageend);
 
-    firstobjpos = reinterpret_cast<char*>(pagewalker) + sizeof(GenericObject*) +
-      PadBytes_
+    firstobjpos = reinterpret_cast<char*>(pagewalker) + sizeof(GenericObject*)
+    + PadBytes_
+    + HBlockInfo_.size_
     ;
 
     // If the object is in a page
@@ -345,22 +409,11 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
     }
   }
 
-
-  //// Good boundary: The object at first or last position in a page
-  //lastobjpos = pageend - ObjectSize_ - PadBytes_;
-  //// todo: consider allignments
-  //if (object == reinterpret_cast<GenericObject*>(firstobjpos) ||
-  //  object == reinterpret_cast<GenericObject*>(lastobjpos)
-  //  )
-  //{
-  //  return false;
-  //}
-
   // The object in between
   size_t disttoobj;
 
   disttoobj = reinterpret_cast<char*>(object) - firstobjpos;
-  return (disttoobj % (ObjectSize_ + 2 * PadBytes_)) != 0;
+  return (disttoobj % (ObjectSize_ + 2 * PadBytes_ + HBlockInfo_.size_)) != 0;
 }
 
   //GenericObject* content;
