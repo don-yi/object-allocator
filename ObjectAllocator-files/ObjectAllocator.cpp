@@ -78,13 +78,40 @@ void* ObjectAllocator::Allocate(const char* label)
   object = reinterpret_cast<char*>(FreeList_);
 
   // Fill in the header info
-  if (HBlockInfo_.size_)
+  if (HBlockInfo_.type_ == OAConfig::hbBasic)
   {
     char* headerwalker;
     headerwalker = object - PadBytes_ - HBlockInfo_.size_;
 
     headerwalker[0] = Allocations_;
-    headerwalker[HBlockInfo_.size_ - 1] = 0x01;
+    headerwalker[HBlockInfo_.size_ - 1] = 1;
+  }
+
+  if (HBlockInfo_.type_ == OAConfig::hbExtended)
+  {
+    char* headerwalker;
+    headerwalker = object - PadBytes_ - HBlockInfo_.size_;
+
+    ++headerwalker[1];
+    headerwalker[3] = Allocations_;
+    headerwalker[HBlockInfo_.size_ - 1] = 1;
+  }
+
+  if (HBlockInfo_.type_ == OAConfig::hbExternal)
+  {
+    char* headerpos;
+    MemBlockInfo* extheader;
+    MemBlockInfo memblock;
+
+    headerpos = object - PadBytes_ - HBlockInfo_.size_;
+    extheader = reinterpret_cast<MemBlockInfo*>(headerpos);
+    new MemBlockInfo;
+    //tmp = new (extheader) MemBlockInfo;
+
+    memblock.label = new char[sizeof(label)];
+    strcpy(memblock.label, label);
+    memblock.alloc_num = Allocations_;
+    memblock.in_use = 1;
   }
 
   for (auto i = 0; i < ObjectSize_; ++i)
@@ -118,27 +145,53 @@ void ObjectAllocator::Free(void* Object)
     );
   }
 
-  // Fill in freed memory signature
+  // Fill in free memory signature
   char* objectfiller;
 
   objectfiller = reinterpret_cast<char*>(Object);
 
-  //if (HBlockInfo_.size_)
-  //{
-  //  char* headerwalker;
-  //  headerwalker = object - PadBytes_ - HBlockInfo_.size_;
-
-  //  headerwalker[0] = MostObjects_;
-  //  headerwalker[HBlockInfo_.size_ - 1] = 0x01;
-  //}
-
-  if (HBlockInfo_.size_)
+  // Modify header when freeing
+  if (HBlockInfo_.type_ == OAConfig::hbBasic)
   {
     char* headerwalker;
     headerwalker = objectfiller - PadBytes_ - HBlockInfo_.size_;
 
     headerwalker[0] = 0;
     headerwalker[HBlockInfo_.size_ - 1] = 0;
+  }
+
+  if (HBlockInfo_.type_ == OAConfig::hbExtended)
+  {
+    char* headerwalker;
+    headerwalker = objectfiller - PadBytes_ - HBlockInfo_.size_;
+
+    headerwalker[3] = 0;
+    headerwalker[HBlockInfo_.size_ - 1] = 0;
+  }
+
+  if (HBlockInfo_.type_ == OAConfig::hbExternal)
+  {
+    char* headerpos;
+    MemBlockInfo* exheader;
+
+    headerpos = reinterpret_cast<char*>(Object) - PadBytes_ - HBlockInfo_.size_;
+    exheader = reinterpret_cast<MemBlockInfo*>(headerpos);
+
+    delete[] exheader->label;
+    exheader->label = nullptr;
+    delete[] exheader;
+    exheader = nullptr;
+
+    //char* headerpos;
+    //MemBlockInfo* exheader;
+
+    //headerpos = object - PadBytes_ - HBlockInfo_.size_;
+    //exheader = new MemBlockInfo;
+
+    //exheader->label = new char[sizeof(label)];
+    //strcpy(exheader->label, label);
+    //exheader->alloc_num = Allocations_;
+    //exheader->in_use = 1;
   }
 
   for (auto i = 0; i < ObjectSize_; ++i)
@@ -182,7 +235,7 @@ void ObjectAllocator::SetDebugState(bool State)
 
 const void* ObjectAllocator::GetFreeList() const
 {
-  return nullptr;
+  return reinterpret_cast<const void*>(FreeList_);
 }
 
 const void* ObjectAllocator::GetPageList() const
