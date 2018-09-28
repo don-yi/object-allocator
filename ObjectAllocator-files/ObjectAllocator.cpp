@@ -3,7 +3,9 @@
 ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
   : PageList_(nullptr), FreeList_(nullptr), 
   ObjectSize_(ObjectSize),
-  PageSize_(config.ObjectsPerPage_ * ObjectSize + sizeof(void*)),
+  PageSize_(config.ObjectsPerPage_ * ObjectSize + sizeof(void*) +
+    (config.ObjectsPerPage_ * 2 * config.PadBytes_)
+  ),
   PadBytes_(config.PadBytes_),
   ObjectsPerPage_(config.ObjectsPerPage_),
   MaxPages_(config.MaxPages_),
@@ -25,20 +27,20 @@ ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
 
 ObjectAllocator::~ObjectAllocator()
 {
-  GenericObject* pagetodelete;
+  GenericObject* pagewalker;
   GenericObject* nextpage;
 
-  pagetodelete = PageList_;
+  pagewalker = PageList_;
   nextpage = nullptr;
 
   // While a page left to delete, delete the page and walk to next page
-  while (pagetodelete)
+  while (pagewalker)
   {
-    nextpage = pagetodelete->Next;
+    nextpage = pagewalker->Next;
 
-    delete[] pagetodelete;
+    delete[] pagewalker;
 
-    pagetodelete = nextpage;
+    pagewalker = nextpage;
   }
 }
 
@@ -58,16 +60,19 @@ void* ObjectAllocator::Allocate(const char* label)
     allocate_new_page();
   }
 
-  // Fill in the allocated signature to the object and move the free list
+  // Fill in the allocated signature to the object and link the free list
+  GenericObject* nextfree;
   char* object;
 
+  nextfree = FreeList_->Next;
   object = reinterpret_cast<char*>(FreeList_);
-  FreeList_ = FreeList_->Next;
 
   for (auto i = 0; i < ObjectSize_; ++i)
   {
     object[i] = ALLOCATED_PATTERN;
   }
+
+  FreeList_ = nextfree;
 
   // Handle private stats
   ++ObjectsInUse_;
@@ -204,6 +209,34 @@ void ObjectAllocator::allocate_new_page()
     {
       newpage[i] = UNALLOCATED_PATTERN;
     }
+
+    // Fill in padding memory signature
+    if (PadBytes_)
+    {
+      char* padwalker;
+      char* pageend;
+
+      padwalker = newpage + sizeof(GenericObject*);
+      pageend = newpage + PageSize_;
+
+      while (padwalker < pageend)
+      {
+        for (unsigned i = 0; i < PadBytes_; ++i)
+        {
+          padwalker[i] = PAD_PATTERN;
+        }
+
+        padwalker += ObjectSize_ + PadBytes_;
+
+        for (unsigned i = 0; i < PadBytes_; ++i)
+        {
+          padwalker[i] = PAD_PATTERN;
+        }
+
+        padwalker += PadBytes_;
+      }
+    }
+
     castedpage = reinterpret_cast<GenericObject*>(newpage);
 
     // Link the page list
@@ -217,22 +250,20 @@ void ObjectAllocator::allocate_new_page()
   }
 
   // Link free list
+  // TODO: handle allignments
+  char* placeholder;
   GenericObject* freelistwalker;
 
-  // TODO: handle allignments and pads
-  freelistwalker = castedpage + 1;
-  freelistwalker->Next = nullptr;
+  placeholder = newpage + sizeof(GenericObject*) + PadBytes_;
+  freelistwalker = reinterpret_cast<GenericObject*>(placeholder);
+  FreeList_ = freelistwalker;
+  FreeList_->Next = nullptr;
 
   for (unsigned i = 0; i < ObjectsPerPage_ - 1; ++i)
   {
-    GenericObject* nextfreespace;
-    char* placeholder;
-
-    nextfreespace = freelistwalker;
-    placeholder = reinterpret_cast<char*>(freelistwalker) + ObjectSize_;
-
+    placeholder = placeholder + ObjectSize_ + (2 * PadBytes_);
     freelistwalker = reinterpret_cast<GenericObject*>(placeholder);
-    freelistwalker->Next = nextfreespace;
+    freelistwalker->Next = FreeList_;
     FreeList_ = freelistwalker;
   }
 
@@ -242,11 +273,6 @@ void ObjectAllocator::allocate_new_page()
   {
     ++FreeObjects_;
   }
-
-  //if ( /* Object is on a valid page boundary */)
-  //  // put it on the free list
-  //else
-  //  throw OAException(OAException::E_BAD_BOUNDARY, "validate_object: Object not on a boundary.");
 }
 
 void ObjectAllocator::put_on_freelist(void* Object)
@@ -262,14 +288,10 @@ ObjectAllocator& ObjectAllocator::operator=(const ObjectAllocator& oa)
   return *this;
 }
 
-  // Make sure this object hasn't been freed yet
+// Make sure this object hasn't been freed yet
+// todo: make it constant time
 bool ObjectAllocator::IsOnFreeList(GenericObject * object) const
 {
-  if (!FreeList_)
-  {
-    return false;
-  }
-
   GenericObject* freelistwalker;
   freelistwalker = FreeList_;
     
@@ -291,8 +313,8 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
   GenericObject* pagewalker;
   char* pageend;
   GenericObject* castedpageend;
-  char* lastobjpos;
-  GenericObject* firstobjpos;
+  char* firstobjpos;
+  //char* lastobjpos;
 
   pagewalker = PageList_;
 
@@ -302,10 +324,14 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
     pageend = reinterpret_cast<char*>(pagewalker) + PageSize_;
     castedpageend = reinterpret_cast<GenericObject*>(pageend);
 
-    firstobjpos = pagewalker + 1;
+    firstobjpos = reinterpret_cast<char*>(pagewalker) + sizeof(GenericObject*) +
+      PadBytes_
+    ;
 
     // If the object is in a page
-    if (firstobjpos <= object && object < castedpageend)
+    if (reinterpret_cast<GenericObject*>(firstobjpos) <= object &&
+      object < castedpageend
+      )
     {
       break;
     }
@@ -319,22 +345,21 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
   }
 
 
-  // Good boundary: The object at first or last position in a page
-  lastobjpos = pageend - ObjectSize_;
-  // todo: consider paddings and allignments
-  if (object == firstobjpos  ||
-    object == reinterpret_cast<GenericObject*>(lastobjpos)
-    )
-  {
-    return false;
-  }
+  //// Good boundary: The object at first or last position in a page
+  //lastobjpos = pageend - ObjectSize_ - PadBytes_;
+  //// todo: consider allignments
+  //if (object == reinterpret_cast<GenericObject*>(firstobjpos) ||
+  //  object == reinterpret_cast<GenericObject*>(lastobjpos)
+  //  )
+  //{
+  //  return false;
+  //}
 
   // The object in between
   size_t disttoobj;
 
-  disttoobj = object - firstobjpos;
-  disttoobj *= sizeof(GenericObject*);
-  return (disttoobj % ObjectSize_) != 0;
+  disttoobj = reinterpret_cast<char*>(object) - firstobjpos;
+  return (disttoobj % (ObjectSize_ + 2 * PadBytes_)) != 0;
 }
 
   //GenericObject* content;
