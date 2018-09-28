@@ -3,8 +3,9 @@
 ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
   : PageList_(nullptr), FreeList_(nullptr), 
   ObjectSize_(ObjectSize),
-  PageSize_(config.ObjectsPerPage_ * ObjectSize + sizeof(void*) +
-    (config.ObjectsPerPage_ * 2 * config.PadBytes_)
+  PageSize_(config.ObjectsPerPage_ * ObjectSize + sizeof(void*)
+    + (config.ObjectsPerPage_ * 2 * config.PadBytes_)
+    + (config.ObjectsPerPage_ * config.HBlockInfo_.size_)
   ),
   PadBytes_(config.PadBytes_),
   ObjectsPerPage_(config.ObjectsPerPage_),
