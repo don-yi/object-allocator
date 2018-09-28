@@ -101,17 +101,15 @@ void* ObjectAllocator::Allocate(const char* label)
   {
     char* headerpos;
     MemBlockInfo* extheader;
-    MemBlockInfo memblock;
 
     headerpos = object - PadBytes_ - HBlockInfo_.size_;
-    extheader = reinterpret_cast<MemBlockInfo*>(headerpos);
-    new MemBlockInfo;
-    //tmp = new (extheader) MemBlockInfo;
+    *reinterpret_cast<MemBlockInfo**>(headerpos) = new MemBlockInfo;
+    extheader = *reinterpret_cast<MemBlockInfo**>(headerpos);
 
-    memblock.label = new char[sizeof(label)];
-    strcpy(memblock.label, label);
-    memblock.alloc_num = Allocations_;
-    memblock.in_use = 1;
+    extheader->label = new char[sizeof(label)];
+    strcpy(extheader->label, label);
+    extheader->alloc_num = Allocations_;
+    extheader->in_use = 1;
   }
 
   for (auto i = 0; i < ObjectSize_; ++i)
@@ -172,26 +170,15 @@ void ObjectAllocator::Free(void* Object)
   if (HBlockInfo_.type_ == OAConfig::hbExternal)
   {
     char* headerpos;
-    MemBlockInfo* exheader;
+    MemBlockInfo* extheader;
 
     headerpos = reinterpret_cast<char*>(Object) - PadBytes_ - HBlockInfo_.size_;
-    exheader = reinterpret_cast<MemBlockInfo*>(headerpos);
+    extheader = *reinterpret_cast<MemBlockInfo**>(headerpos);
 
-    delete[] exheader->label;
-    exheader->label = nullptr;
-    delete[] exheader;
-    exheader = nullptr;
-
-    //char* headerpos;
-    //MemBlockInfo* exheader;
-
-    //headerpos = object - PadBytes_ - HBlockInfo_.size_;
-    //exheader = new MemBlockInfo;
-
-    //exheader->label = new char[sizeof(label)];
-    //strcpy(exheader->label, label);
-    //exheader->alloc_num = Allocations_;
-    //exheader->in_use = 1;
+    delete[] extheader->label;
+    extheader->label = nullptr;
+    delete[] extheader;
+    extheader = nullptr;
   }
 
   for (auto i = 0; i < ObjectSize_; ++i)
