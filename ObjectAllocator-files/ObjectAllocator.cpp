@@ -1,3 +1,4 @@
+#include <cstring>
 #include "ObjectAllocator.h"
 
 ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
@@ -13,7 +14,8 @@ ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
   Alignment_(config.Alignment_),
   LeftAlignSize_(config.LeftAlignSize_),
   InterAlignSize_(config.InterAlignSize_),
-  HBlockInfo_(config.HBlockInfo_)
+  HBlockInfo_(config.HBlockInfo_),
+  UseCPPMemManager_(config.UseCPPMemManager_)
 {
   allocate_new_page();
 
@@ -47,6 +49,18 @@ ObjectAllocator::~ObjectAllocator()
 
 void* ObjectAllocator::Allocate(const char* label)
 {
+  if (UseCPPMemManager_)
+  {
+  ++ObjectsInUse_;
+  if (MostObjects_ < ObjectsInUse_)
+  {
+    MostObjects_ = ObjectsInUse_;
+  }
+
+  ++Allocations_;
+    return CPPMemManagerAlloc();
+  }
+
   // If no free space, allocate a new page
   if (!FreeList_)
   {
@@ -60,15 +74,14 @@ void* ObjectAllocator::Allocate(const char* label)
     allocate_new_page();
   }
 
-  // Handle private stats
-  ++ObjectsInUse_;
-  --FreeObjects_;
   ++Allocations_;
-
+  ++ObjectsInUse_;
   if (MostObjects_ < ObjectsInUse_)
   {
     MostObjects_ = ObjectsInUse_;
   }
+
+  --FreeObjects_;
 
   // Fill in the allocated signature to the object and link the free list
   GenericObject* nextfree;
@@ -83,7 +96,8 @@ void* ObjectAllocator::Allocate(const char* label)
     char* headerwalker;
     headerwalker = object - PadBytes_ - HBlockInfo_.size_;
 
-    headerwalker[0] = Allocations_;
+    headerwalker[0] = static_cast<char>(Allocations_);
+    //itoa(Allocations_, headerwalker, 10);
     headerwalker[HBlockInfo_.size_ - 1] = 1;
   }
 
@@ -93,7 +107,8 @@ void* ObjectAllocator::Allocate(const char* label)
     headerwalker = object - PadBytes_ - HBlockInfo_.size_;
 
     ++headerwalker[1];
-    headerwalker[3] = Allocations_;
+    headerwalker[3] = static_cast<char>(Allocations_);
+    //itoa(Allocations_, headerwalker, 10);
     headerwalker[HBlockInfo_.size_ - 1] = 1;
   }
 
@@ -112,7 +127,7 @@ void* ObjectAllocator::Allocate(const char* label)
     extheader->in_use = 1;
   }
 
-  for (auto i = 0; i < ObjectSize_; ++i)
+  for (unsigned i = 0; i < ObjectSize_; ++i)
   {
     object[i] = ALLOCATED_PATTERN;
   }
@@ -124,8 +139,17 @@ void* ObjectAllocator::Allocate(const char* label)
 
 void ObjectAllocator::Free(void* Object)
 {
+  --ObjectsInUse_;
+  ++Deallocations_;
+
   GenericObject* castedobject;
   castedobject = reinterpret_cast<GenericObject*>(Object);
+
+  if (UseCPPMemManager_)
+  {
+    CPPMemManagerFree(castedobject);
+    return;;
+  }
 
   // Make sure this object hasn't been freed yet
   if (IsOnFreeList(castedobject))
@@ -189,7 +213,7 @@ void ObjectAllocator::Free(void* Object)
     *extheader = nullptr;
   }
 
-  for (auto i = 0; i < ObjectSize_; ++i)
+  for (unsigned i = 0; i < ObjectSize_; ++i)
   {
     objectfiller[i] = FREED_PATTERN;
   }
@@ -198,19 +222,63 @@ void ObjectAllocator::Free(void* Object)
   castedobject->Next = FreeList_;
   FreeList_ = castedobject;
 
-  // Handle private stats
-  --ObjectsInUse_;
   ++FreeObjects_;
-  ++Deallocations_;
 }
 
 unsigned ObjectAllocator::DumpMemoryInUse(DUMPCALLBACK fn) const
 {
+  //unsigned leakct;
+  //GenericObject* pagewalker;
+
+  //leakct = 0;
+  //pagewalker = PageList_;
+  //while (pagewalker)
+  //{
+  //  char* objwalker;
+  //  char* pageend;
+
+  //  objwalker = reinterpret_cast<char*>(PageList_) + HBlockInfo_.size_
+  //  + PadBytes_
+  //  ;
+  //  pageend = reinterpret_cast<char*>(pagewalker) + PageSize_;
+  //  while (objwalker < pageend)
+  //  {
+  //    GenericObject* freewalker;
+  //    freewalker = FreeList_;
+
+  //    while (freewalker)
+  //    {
+  //      // No leak
+  //      if (objwalker == reinterpret_cast<char*>(freewalker))
+  //      {
+  //        break;
+  //      }
+  //    }
+  //    // Leak
+  //    if (!freewalker)
+  //    {
+  //      fn(objwalker, ObjectSize_);
+  //      ++leakct;
+  //    }
+  //    objwalker += ObjectSize_ + 2 * PadBytes_ + HBlockInfo_.size_;
+  //  }
+  //  pagewalker = pagewalker->Next;
+  //}
+
+////void DumpCallback( const void *block, size_t actual_size )
+  ////for (int i = 0; i < ObjectsInUse_; ++i)
+  ////{
+
+  ////  //fn()
+  ////}
+  fn(PageList_, ObjectSize_);
+
   return 0;
 }
 
 unsigned ObjectAllocator::ValidatePages(VALIDATECALLBACK fn) const
 {
+  fn(PageList_, ObjectSize_);
   return 0;
 }
 
@@ -226,6 +294,7 @@ bool ObjectAllocator::ImplementedExtraCredit()
 
 void ObjectAllocator::SetDebugState(bool State)
 {
+  tmp_ = State;
 }
 
 const void* ObjectAllocator::GetFreeList() const
@@ -250,6 +319,7 @@ OAConfig ObjectAllocator::GetConfig() const
   config.LeftAlignSize_ = LeftAlignSize_;
   config.InterAlignSize_ = InterAlignSize_;
   config.HBlockInfo_ = HBlockInfo_;
+  config.UseCPPMemManager_ = UseCPPMemManager_;
 
   return config;
 }
@@ -286,7 +356,7 @@ void ObjectAllocator::allocate_new_page()
   }
 
   // Fill in unallocated memory signature
-  for (auto i = 0; i < PageSize_; ++i)
+  for (unsigned i = 0; i < PageSize_; ++i)
   {
     newpage[i] = UNALLOCATED_PATTERN;
   }
@@ -389,14 +459,17 @@ void ObjectAllocator::allocate_new_page()
 
 void ObjectAllocator::put_on_freelist(void* Object)
 {
+  objtmp_ = Object;
 }
 
 ObjectAllocator::ObjectAllocator(const ObjectAllocator& oa)
 {
+  const ObjectAllocator tmp = oa;
 }
 
 ObjectAllocator& ObjectAllocator::operator=(const ObjectAllocator& oa)
 {
+  const ObjectAllocator tmp = oa;
   return *this;
 }
 
@@ -467,9 +540,9 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
 // Make sure this object does not have corrupted block
 bool ObjectAllocator::HasCorruptedBlock(void * object) const
 {
-  char* padchecker;
+  char unsigned* padchecker;
 
-  padchecker = reinterpret_cast<char*>(object) - PadBytes_;
+  padchecker = reinterpret_cast<char unsigned*>(object) - PadBytes_;
 
   for (unsigned i = 0; i < PadBytes_; ++i)
   {
@@ -490,6 +563,51 @@ bool ObjectAllocator::HasCorruptedBlock(void * object) const
   }
 
   return false;
+}
+
+// by-pass the functionality of the OA and use new/delete
+void * ObjectAllocator::CPPMemManagerAlloc()
+{
+  char* object;
+  object = new char[sizeof(ObjectSize_)];
+
+  GenericObject* castedobj;
+  castedobj = reinterpret_cast<GenericObject*>(object);
+  castedobj->Next = nullptr;
+
+  if (!PageList_)
+  {
+    PageList_ = castedobj;
+  }
+  else
+  {
+    GenericObject* pagewalker;
+    pagewalker = PageList_;
+    while (pagewalker->Next)
+    {
+      pagewalker = pagewalker->Next;
+    }
+    pagewalker->Next = castedobj;
+  }
+
+  return castedobj;
+}
+
+void ObjectAllocator::CPPMemManagerFree(GenericObject * object)
+{
+  GenericObject* pagewalker;
+  pagewalker = PageList_;
+  while (pagewalker->Next != object)
+  {
+    pagewalker = pagewalker->Next;
+  }
+
+  GenericObject* objtodel;
+  objtodel = pagewalker->Next;
+  pagewalker->Next = objtodel->Next;
+
+  delete objtodel;
+  objtodel = nullptr;
 }
 
   //GenericObject* content;

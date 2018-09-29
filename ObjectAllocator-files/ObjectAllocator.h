@@ -195,6 +195,9 @@ private:
   unsigned Allocations_{};   // total requests to allocate memory
   unsigned Deallocations_{}; // total requests to free memory
   unsigned MostObjects_{};   // most objects in use by client at one time
+  bool UseCPPMemManager_;
+  bool tmp_;
+  void* objtmp_;
   
     // Make private to prevent copy construction and assignment
   ObjectAllocator(const ObjectAllocator &oa);
@@ -206,6 +209,9 @@ private:
   bool IsOnBadBoundary(GenericObject* object) const;
   // Make sure this object does not have corrupted block
   bool HasCorruptedBlock(void* object) const;
+  // by-pass the functionality of the OA and use new/delete
+  void* CPPMemManagerAlloc();
+  void CPPMemManagerFree(GenericObject* object);
 };
 
 #endif
