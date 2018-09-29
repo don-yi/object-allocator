@@ -143,6 +143,14 @@ void ObjectAllocator::Free(void* Object)
     );
   }
 
+  // Make sure this object does not have corrupted block
+  if (HasCorruptedBlock(Object))
+  {
+    throw OAException(OAException::E_CORRUPTED_BLOCK,
+      "left block has been corrupted (pad bytes have been overwritten)"
+    );
+  }
+
   // Fill in free memory signature
   char* objectfiller;
 
@@ -454,6 +462,34 @@ bool ObjectAllocator::IsOnBadBoundary(GenericObject * object) const
 
   disttoobj = reinterpret_cast<char*>(object) - firstobjpos;
   return (disttoobj % (ObjectSize_ + 2 * PadBytes_ + HBlockInfo_.size_)) != 0;
+}
+
+// Make sure this object does not have corrupted block
+bool ObjectAllocator::HasCorruptedBlock(void * object) const
+{
+  char* padchecker;
+
+  padchecker = reinterpret_cast<char*>(object) - PadBytes_;
+
+  for (unsigned i = 0; i < PadBytes_; ++i)
+  {
+    if (padchecker[i] != PAD_PATTERN)
+    {
+      return true;
+    }
+  }
+
+  padchecker = padchecker + PadBytes_ + ObjectSize_;
+
+  for (unsigned i = 0; i < PadBytes_; ++i)
+  {
+    if (padchecker[i] != PAD_PATTERN)
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
 
   //GenericObject* content;

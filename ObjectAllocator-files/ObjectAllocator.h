@@ -204,6 +204,8 @@ private:
   bool IsOnFreeList(GenericObject* object) const;
   // Make sure this object is not on bad boundary
   bool IsOnBadBoundary(GenericObject* object) const;
+  // Make sure this object does not have corrupted block
+  bool HasCorruptedBlock(void* object) const;
 };
 
 #endif
